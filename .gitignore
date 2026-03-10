@@ -1,0 +1,21 @@
+# Env files
+/apps/api/.env
+.env
+.env.*
+
+# Python cache/bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test/cache tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local sqlite/db artifacts
+*.db
+*.sqlite
+*.sqlite3
+
+

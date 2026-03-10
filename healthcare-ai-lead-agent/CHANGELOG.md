@@ -1,7 +1,7 @@
 # Changelog
 
 ## Unreleased
-
+## 3/10/2026
 ### Added
 - Built a minimal FastAPI backend happy-path for inbound lead intake with route, service, repository, and schema separation.
 - Added normalized data models and persistence for leads, conversations, messages, appointments, summaries, and audit events.
