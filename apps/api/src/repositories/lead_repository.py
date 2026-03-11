@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from src.schemas.models import Conversation, Lead
+from src.schemas.models import Conversation, ConversationState, Lead
 
 
 class LeadRepository:
@@ -23,6 +23,21 @@ class LeadRepository:
                 select(Lead)
                 .where(Lead.agency_id == agency_id)
                 .order_by(Lead.created_at.desc())
+            )
+        )
+
+    def list_escalated_for_agency(self, agency_id: str) -> list[Lead]:
+        """Return leads that have at least one conversation in the 'escalated' state."""
+        return list(
+            self.db.scalars(
+                select(Lead)
+                .join(Conversation, Conversation.lead_id == Lead.id)
+                .where(
+                    Lead.agency_id == agency_id,
+                    Conversation.current_state == ConversationState.escalated,
+                )
+                .order_by(Lead.created_at.desc())
+                .distinct()
             )
         )
 

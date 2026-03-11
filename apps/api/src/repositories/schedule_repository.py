@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import and_, select
 from sqlalchemy.orm import Session
 
-from src.schemas.models import Appointment, AppointmentStatus
+from src.schemas.models import Appointment, AppointmentStatus, Lead
 
 
 class ScheduleRepository:
@@ -47,6 +47,23 @@ class ScheduleRepository:
         appointment.status = status
         self.db.flush()
         return appointment
+
+    def get_appointments_in_range(
+        self, start: datetime, end: datetime
+    ) -> list[tuple[Appointment, str | None]]:
+        """Return (Appointment, lead_name) tuples for all appointments in the given range."""
+        rows = self.db.execute(
+            select(Appointment, Lead.name)
+            .join(Lead, Lead.id == Appointment.lead_id)
+            .where(
+                and_(
+                    Appointment.start_time >= start,
+                    Appointment.start_time < end,
+                )
+            )
+            .order_by(Appointment.start_time)
+        ).all()
+        return [(row[0], row[1]) for row in rows]
 
     def check_overlap(self, start_time: datetime, end_time: datetime) -> bool:
         """Return True if any confirmed appointment overlaps the given window."""

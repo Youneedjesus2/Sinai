@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## 3/11/2026 — Session 11: Dashboard — Schedule, Escalations, Navigation, SummaryPanel
+### Added
+- `apps/web/app/schedule/page.tsx` — Weekly calendar: table-based Mon–Sun view, prev/next/today navigation, appointment cards showing lead name + time + duration + status badge, click to lead detail, 60s auto-refresh, empty state
+- `apps/web/app/escalations/page.tsx` — Escalations queue: lists all leads with escalated conversations sorted by `created_at` desc, shows lead name, email, channel, time-ago since creation, "View conversation →" link; red badge count in page title; 30s auto-refresh; empty state
+- `apps/web/components/Navigation.tsx` — Sidebar navigation: Leads (with "new" count badge), Schedule, Escalations (with red count badge when > 0); highlights active route; shows agency name from `NEXT_PUBLIC_AGENCY_NAME`
+- `apps/web/app/leads/[id]/components/SummaryPanel.tsx` — Extracted summary card: shows formatted summary fields (`summary_text`, `requested_service`, `care_needs`, `location`, `scheduled_time`, `unresolved_questions`, `next_steps`); Generate/Regenerate button calls `/api/generate-summary` Next.js route; loading state; error display
+- `apps/web/app/api/generate-summary/route.ts` — Next.js API route (POST); proxies to FastAPI `POST /leads/{leadId}/summary`; keeps API URL server-side; validates `leadId` is positive integer before forwarding
+
+### Changed
+- `apps/web/app/layout.tsx` — Replaced top header with sidebar layout: `Navigation` on left, content on right; removed static `<header>`
+- `apps/web/app/leads/[id]/page.tsx` — Replaced inline summary block with `SummaryPanel` component; removed unused `useState` import
+- `apps/web/lib/api.ts` — Added `AppointmentWithLead`, `TimeSlot` types; added `getEscalatedLeads`, `getScheduledAppointments` fetchers; updated `swrKeys`
+- `apps/web/.env.local.example` — Added `NEXT_PUBLIC_AGENCY_NAME=Cornerstone Care`
+
+### Backend (supporting new frontend routes)
+- `apps/api/src/repositories/lead_repository.py` — Added `list_escalated_for_agency(agency_id)`: joins `leads` × `conversations` and returns leads with at least one `current_state = 'escalated'` conversation
+- `apps/api/src/repositories/schedule_repository.py` — Added `get_appointments_in_range(start, end)`: returns `(Appointment, lead_name)` tuples via a join with `leads` ordered by `start_time`
+- `apps/api/src/schemas/scheduling.py` — Added `AppointmentWithLeadResponse` schema with `lead_name: str | None`
+- `apps/api/src/api/routes/leads.py` — Added `GET /leads/escalated?agency_id=` (defined before `/{lead_id}` to avoid routing ambiguity)
+- `apps/api/src/api/routes/scheduling.py` — Added `GET /scheduling/appointments?start_date=&end_date=`; defaults to current Monday–Sunday when params omitted
+
 ## 3/11/2026 — Session 10: Next.js Staff Dashboard
 ### Added
 - `apps/web/` — Next.js 14 App Router dashboard (TypeScript, Tailwind CSS, shadcn/ui-style components, SWR)

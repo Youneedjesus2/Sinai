@@ -46,12 +46,22 @@ export interface Appointment {
   status: AppointmentStatus
 }
 
+export interface AppointmentWithLead extends Appointment {
+  lead_name: string | null
+}
+
 export interface Summary {
   id: number
   lead_id: number
   summary_text: string
   summary_json: Record<string, unknown>
   created_at: string
+}
+
+export interface TimeSlot {
+  start: string
+  end: string
+  available: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -98,6 +108,17 @@ export const getLeadSummary = (leadId: number) =>
 export const generateLeadSummary = (leadId: number) =>
   apiPost<Summary>(`/leads/${leadId}/summary`)
 
+export const getEscalatedLeads = (agencyId: string) =>
+  apiFetch<Lead[]>(`/leads/escalated?agency_id=${encodeURIComponent(agencyId)}`)
+
+export const getScheduledAppointments = (startDate?: string, endDate?: string) => {
+  const params = new URLSearchParams()
+  if (startDate) params.set('start_date', startDate)
+  if (endDate) params.set('end_date', endDate)
+  const query = params.toString()
+  return apiFetch<AppointmentWithLead[]>(`/scheduling/appointments${query ? `?${query}` : ''}`)
+}
+
 // ---------------------------------------------------------------------------
 // SWR key factories
 // ---------------------------------------------------------------------------
@@ -108,4 +129,7 @@ export const swrKeys = {
   conversations: (leadId: number) => `/leads/${leadId}/conversations`,
   appointments: (leadId: number) => `/leads/${leadId}/appointments`,
   summary: (leadId: number) => `/leads/${leadId}/summary`,
+  scheduledAppointments: (startDate?: string, endDate?: string) =>
+    `/scheduling/appointments?start=${startDate ?? ''}&end=${endDate ?? ''}`,
+  escalations: (agencyId: string) => `/leads/escalated?agency_id=${agencyId}`,
 }
