@@ -2,6 +2,7 @@ from datetime import date, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
+from src.core.logging import get_logger
 from src.integrations.calendar_client import GoogleCalendarClient
 from src.repositories.audit_repository import AuditRepository
 from src.repositories.schedule_repository import ScheduleRepository
@@ -11,6 +12,8 @@ from src.schemas.scheduling import (
     SchedulingConflictError,
     TimeSlot,
 )
+
+logger = get_logger(__name__)
 
 CONSULTATION_TITLE = 'Healthcare Consultation'
 DEFAULT_SLOT_DAYS = 7  # look-ahead when no date is requested
@@ -60,8 +63,11 @@ class SchedulingService:
         """
         end_time = start_time + timedelta(minutes=duration_minutes)
 
+        logger.info('booking_attempt', extra={'lead_id': lead_id, 'start_time': start_time.isoformat(), 'duration_minutes': duration_minutes})
+
         # 1. Local overlap check (safe failure rule #3)
         if self.repo.check_overlap(start_time, end_time):
+            logger.warning('booking_conflict', extra={'lead_id': lead_id, 'start_time': start_time.isoformat()})
             raise SchedulingConflictError(
                 f'Appointment slot {start_time.isoformat()} is already booked'
             )
@@ -92,6 +98,8 @@ class SchedulingService:
             },
         )
 
+        logger.info('appointment_booked', extra={'lead_id': lead_id, 'appointment_id': appointment.id, 'provider_event_id': provider_event_id})
+
         # 5. Commit and return
         self.db.commit()
         self.db.refresh(appointment)
@@ -103,8 +111,10 @@ class SchedulingService:
 
     def cancel_consultation(self, appointment_id: int) -> Appointment:
         """Cancel an appointment — removes from Google Calendar and marks DB record."""
+        logger.info('cancellation_attempt', extra={'appointment_id': appointment_id})
         appointment = self.repo.get_appointment(appointment_id)
         if appointment is None:
+            logger.warning('cancel_appointment_not_found', extra={'appointment_id': appointment_id})
             raise ValueError(f'Appointment {appointment_id} not found')
 
         # Cancel on provider (best-effort — log failure but don't block DB update)
@@ -129,6 +139,8 @@ class SchedulingService:
             event_type='appointment_cancelled',
             event_payload={'appointment_id': appointment_id},
         )
+
+        logger.info('appointment_cancelled', extra={'appointment_id': appointment_id, 'lead_id': appointment.lead_id})
 
         self.db.commit()
         self.db.refresh(appointment)
@@ -191,6 +203,8 @@ class SchedulingService:
                 'new_provider_event_id': new_provider_event_id,
             },
         )
+
+        logger.info('appointment_rescheduled', extra={'old_appointment_id': appointment_id, 'new_appointment_id': new_appointment.id, 'new_start': new_start.isoformat()})
 
         self.db.commit()
         self.db.refresh(new_appointment)

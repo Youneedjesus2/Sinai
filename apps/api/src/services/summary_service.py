@@ -1,7 +1,10 @@
 from sqlalchemy.orm import Session
 
+from src.core.logging import get_logger
 from src.core.prompts import load_prompt
 from src.integrations.openai_client import OpenAIClient, OrchestratorError
+
+logger = get_logger(__name__)
 from src.repositories.audit_repository import AuditRepository
 from src.repositories.lead_repository import LeadRepository
 from src.repositories.message_repository import MessageRepository
@@ -26,7 +29,10 @@ class SummaryService:
         """
         lead = self.leads.get_lead(lead_id)
         if lead is None:
+            logger.warning('summary_lead_not_found', extra={'lead_id': lead_id})
             raise ValueError(f'Lead {lead_id} not found')
+
+        logger.info('summary_generation_started', extra={'lead_id': lead_id})
 
         # 1. Build transcript from all conversations
         transcript = self._build_transcript(lead_id)
@@ -50,6 +56,8 @@ class SummaryService:
             summary_text=summary_text,
             summary_json=output.model_dump(),
         )
+
+        logger.info('summary_generated', extra={'lead_id': lead_id, 'summary_id': summary.id})
 
         # 6. Audit
         self.audits.create_event(

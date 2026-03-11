@@ -1,10 +1,9 @@
-import logging
-
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from src.core.config import get_settings
+from src.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Holds the active subscription ID across the process lifetime.
 _active_subscription_id: str | None = None

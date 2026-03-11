@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from src.core.logging import get_logger
 from src.repositories.audit_repository import AuditRepository
 from src.repositories.lead_repository import LeadRepository
 from src.repositories.message_repository import MessageRepository
@@ -9,6 +10,8 @@ from src.schemas.models import ConversationState, LeadStatus, MessageDirection
 from src.services.orchestrator_service import OrchestratorService
 from src.services.reply_service import ReplyService
 from src.services.retrieval_service import RetrievalService
+
+logger = get_logger(__name__)
 
 
 class IntakeService:
@@ -31,9 +34,11 @@ class IntakeService:
             status=LeadStatus.new,
         )
         self._audit(lead.id, 'lead_created', {'agency_id': lead.agency_id, 'source_channel': lead.source_channel})
+        logger.info('lead_created', extra={'lead_id': lead.id, 'agency_id': lead.agency_id, 'source_channel': lead.source_channel})
 
         conversation = self.leads.create_conversation(lead_id=lead.id)
         self._audit(conversation.lead_id, 'conversation_created', {'conversation_id': conversation.id, 'state': conversation.current_state.value})
+        logger.info('conversation_created', extra={'lead_id': lead.id, 'conversation_id': conversation.id})
 
         inbound = self.messages.create_message(
             conversation_id=conversation.id,
@@ -43,17 +48,20 @@ class IntakeService:
             provider_message_id=request.provider_message_id,
         )
         self._audit(lead.id, 'inbound_message_received', {'message_id': inbound.id, 'channel': inbound.channel})
+        logger.info('inbound_message_received', extra={'lead_id': lead.id, 'message_id': inbound.id, 'channel': inbound.channel})
 
         retrieval_result = RetrievalService().retrieve(request.message_body, request.agency_id)
         self._audit(lead.id, 'retrieval_completed', {
             'context_found': retrieval_result.context_found,
             'confidence_score': retrieval_result.confidence_score,
         })
+        logger.info('retrieval_completed', extra={'lead_id': lead.id, 'context_found': retrieval_result.context_found, 'confidence_score': retrieval_result.confidence_score})
 
         result: OrchestratorResult = OrchestratorService.process_inbound_message(
             request.message_body, retrieval_result
         )
         self._audit(lead.id, 'orchestration_completed', result.model_dump())
+        logger.info('orchestration_completed', extra={'lead_id': lead.id, 'detected_intent': result.detected_intent, 'escalation_needed': result.escalation_needed})
 
         if result.escalation_needed:
             conversation.current_state = ConversationState.escalated
@@ -70,6 +78,7 @@ class IntakeService:
             body=rendered_reply,
         )
         self._audit(lead.id, 'outbound_reply_created', {'message_id': outbound.id, 'intent': result.detected_intent})
+        logger.info('outbound_reply_created', extra={'lead_id': lead.id, 'message_id': outbound.id, 'intent': result.detected_intent})
 
         lead.status = LeadStatus.engaged
         self.db.commit()

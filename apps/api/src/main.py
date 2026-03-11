@@ -6,6 +6,7 @@ from src.api.routes.leads import router as leads_router
 from src.api.routes.messages import router as messages_router
 from src.api.routes.scheduling import router as scheduling_router
 from src.api.routes.sms import router as sms_router
+from src.core.app import setup_phoenix_tracing
 from src.core.config import get_settings
 from src.core.db import Base, engine
 from src.core.startup import register_ringcentral_webhook, schedule_subscription_renewal, shutdown_scheduler
@@ -17,6 +18,7 @@ app = FastAPI(title=settings.app_name)
 
 @app.on_event('startup')
 def startup() -> None:
+    setup_phoenix_tracing()
     Base.metadata.create_all(bind=engine)
     register_ringcentral_webhook()
     schedule_subscription_renewal()

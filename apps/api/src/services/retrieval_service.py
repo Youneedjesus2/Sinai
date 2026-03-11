@@ -1,7 +1,10 @@
 from pathlib import Path
 
+from src.core.logging import get_logger
 from src.integrations.vector_store import VectorStoreClient
 from src.schemas.llm import RetrievalResult
+
+logger = get_logger(__name__)
 
 KNOWLEDGE_DIR = Path(__file__).parents[4] / 'knowledge'
 
@@ -16,6 +19,7 @@ class RetrievalService:
             nodes = client.query(index, query)
 
             if not nodes:
+                logger.info('retrieval_completed', extra={'context_found': False, 'confidence_score': 0.0, 'reason': 'no_nodes'})
                 return RetrievalResult(
                     context_chunks=[],
                     confidence_score=0.0,
@@ -29,13 +33,16 @@ class RetrievalService:
             sources = [n.node.metadata.get('file_name', 'unknown') for n in nodes]
             context_found = confidence_score >= CONFIDENCE_THRESHOLD
 
-            return RetrievalResult(
+            result = RetrievalResult(
                 context_chunks=context_chunks if context_found else [],
                 confidence_score=confidence_score,
                 sources=sources,
                 context_found=context_found,
             )
-        except Exception:
+            logger.info('retrieval_completed', extra={'context_found': result.context_found, 'confidence_score': result.confidence_score})
+            return result
+        except Exception as exc:
+            logger.error('retrieval_failed', extra={'error': str(exc)})
             return RetrievalResult(
                 context_chunks=[],
                 confidence_score=0.0,

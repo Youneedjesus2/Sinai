@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 3/11/2026 — Session 8: Structured Logging + Phoenix Observability
+### Added
+- `src/core/logging.py` — `get_logger(name)`: configures root logger with `_JsonFormatter` on first call; emits single-line JSON `{"timestamp", "level", "name", "message", "extra"}` to stdout; log level from `LOG_LEVEL` env var; no PII in any log call per data-governance.md §9
+- `src/core/app.py` — `setup_phoenix_tracing()`: initializes OpenTelemetry TracerProvider via `arize-phoenix-otel`; registers `OpenAIInstrumentor` for LLM span capture; skips silently if `PHOENIX_COLLECTOR_ENDPOINT` is not set; catches `ImportError` gracefully so missing packages don't crash startup
+- `tests/test_logging.py` — 8 tests: `get_logger` returns Logger, same-name caching, JSON format validation, extra-field capture, exception traceback capture, IntakeService logging, OrchestratorService logging, `setup_phoenix_tracing` no-op safety
+
+### Changed
+- `src/core/config.py` — added `log_level: str = 'INFO'` and `phoenix_collector_endpoint: str | None = None`
+- `src/main.py` — calls `setup_phoenix_tracing()` at FastAPI startup before table creation
+- `src/core/startup.py` — switched from `logging.getLogger` to `get_logger`
+- `src/services/intake_service.py` — structured log at each step with IDs only, no message bodies
+- `src/services/orchestrator_service.py` — logs `detected_intent` + `escalation_needed` on all paths
+- `src/services/retrieval_service.py` — logs `context_found` + `confidence_score`
+- `src/services/scheduling_service.py` — logs booking attempts, conflicts, outcomes
+- `src/services/summary_service.py` — logs summary generation start and completion
+- `src/integrations/openai_client.py` — switched to `get_logger`; logs success/failure with vendor tag
+- `src/integrations/sendgrid_client.py` — switched to `get_logger`; structured log keys
+- `src/integrations/ringcentral_client.py` — switched to `get_logger`; fixed PII leak (phone number removed from logs; logs message ID only)
+- `src/integrations/calendar_client.py` — switched from `logging.getLogger` to `get_logger`
+- `pyproject.toml` — added `arize-phoenix-otel>=0.3.0` and `openinference-instrumentation-openai>=0.1.0`
+- `.env.example` — added `LOG_LEVEL=INFO` and `PHOENIX_COLLECTOR_ENDPOINT=`
+
 ## 3/11/2026 — Session 7: Conversation Summary Service
 ### Added
 - `SummaryOutput` Pydantic model added to `src/schemas/llm.py` — structured LLM output with `lead_name`, `requested_service`, `location`, `care_needs`, `scheduled_time`, `unresolved_questions`, `escalation_reasons`, `next_steps`
