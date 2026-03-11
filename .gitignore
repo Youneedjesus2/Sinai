@@ -18,4 +18,9 @@ __pycache__/
 *.sqlite
 *.sqlite3
 
+# Node / Next.js artifacts
+node_modules/
+**/node_modules/
+.next/
+
 
