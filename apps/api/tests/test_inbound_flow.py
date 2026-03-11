@@ -1,20 +1,39 @@
+from unittest.mock import MagicMock, patch
+
 from src.core.db import SessionLocal
+from src.schemas.llm import OrchestratorResult
 from src.schemas.models import AuditEvent, Conversation, Lead, Message
 
 
+def _make_openai_mock(result: OrchestratorResult):
+    mock_client = MagicMock()
+    mock_response = MagicMock()
+    mock_response.choices[0].message.parsed = result
+    mock_client.beta.chat.completions.parse.return_value = mock_response
+    return mock_client
+
+
 def test_inbound_happy_path_creates_lead_conversation_messages_and_audits(client):
-    response = client.post(
-        '/leads/inbound',
-        json={
-            'agency_id': 'agency-123',
-            'name': 'Jane Doe',
-            'phone': '+15550001',
-            'email': 'jane@example.com',
-            'source_channel': 'sms',
-            'message_body': 'I need an appointment next week',
-            'provider_message_id': 'msg-1',
-        },
+    appointment_result = OrchestratorResult(
+        detected_intent='appointment_request',
+        follow_up_needed=True,
+        escalation_needed=False,
+        suggested_next_reply='I can help schedule that. What day works best?',
     )
+
+    with patch('src.integrations.openai_client.OpenAI', return_value=_make_openai_mock(appointment_result)):
+        response = client.post(
+            '/leads/inbound',
+            json={
+                'agency_id': 'agency-123',
+                'name': 'Jane Doe',
+                'phone': '+15550001',
+                'email': 'jane@example.com',
+                'source_channel': 'sms',
+                'message_body': 'I need an appointment next week',
+                'provider_message_id': 'msg-1',
+            },
+        )
 
     assert response.status_code == 200
     body = response.json()

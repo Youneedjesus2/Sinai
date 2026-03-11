@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     app_name: str = 'Sinai Lead Intake API'
     app_env: str = Field(..., alias='APP_ENV')
     database_url: str = Field(..., alias='DATABASE_URL')
+    openai_api_key: str = Field(..., alias='OPENAI_API_KEY')
 
 
 @lru_cache
