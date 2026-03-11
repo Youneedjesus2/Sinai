@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     google_calendar_credentials_json: str = Field('', alias='GOOGLE_CALENDAR_CREDENTIALS_JSON')
     google_calendar_id: str = Field('', alias='GOOGLE_CALENDAR_ID')
 
+    # Observability
+    log_level: str = Field('INFO', alias='LOG_LEVEL')
+    phoenix_collector_endpoint: str | None = Field(None, alias='PHOENIX_COLLECTOR_ENDPOINT')
+
 
 @lru_cache
 

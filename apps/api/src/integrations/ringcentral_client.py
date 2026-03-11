@@ -1,8 +1,7 @@
-import logging
-
 from src.core.config import get_settings
+from src.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 RINGCENTRAL_SERVER = 'https://platform.ringcentral.com'
 
@@ -37,10 +36,11 @@ class RingCentralClient:
             )
             data = response.json()
             msg_id = data.get('id')
-            logger.info('RingCentral SMS sent to %s — message ID: %s', to, msg_id)
+            # Log message ID only — never log phone numbers (data-governance.md §9)
+            logger.info('ringcentral_sms_sent', extra={'vendor': 'ringcentral', 'message_id': str(msg_id) if msg_id else None})
             return str(msg_id) if msg_id else None
         except Exception as exc:
-            logger.error('RingCentral send_sms failed: %s', exc)
+            logger.error('ringcentral_sms_failed', extra={'vendor': 'ringcentral', 'error': str(exc)})
             return None
 
     def register_webhook_subscription(self, webhook_url: str) -> str:
@@ -59,9 +59,8 @@ class RingCentralClient:
         data = response.json()
         subscription_id = str(data['id'])
         logger.info(
-            'RingCentral webhook subscription registered — ID: %s  expires in %s s',
-            subscription_id,
-            SUBSCRIPTION_TTL_SECONDS,
+            'ringcentral_webhook_registered',
+            extra={'vendor': 'ringcentral', 'subscription_id': subscription_id, 'ttl_seconds': SUBSCRIPTION_TTL_SECONDS},
         )
         return subscription_id
 
@@ -70,12 +69,11 @@ class RingCentralClient:
             self._platform.post(
                 f'/restapi/v1.0/subscription/{subscription_id}/renew'
             )
-            logger.info('RingCentral subscription renewed — ID: %s', subscription_id)
+            logger.info('ringcentral_subscription_renewed', extra={'vendor': 'ringcentral', 'subscription_id': subscription_id})
             return True
         except Exception as exc:
             logger.error(
-                'RingCentral subscription renewal FAILED — ID: %s  error: %s',
-                subscription_id,
-                exc,
+                'ringcentral_subscription_renewal_failed',
+                extra={'vendor': 'ringcentral', 'subscription_id': subscription_id, 'error': str(exc)},
             )
             return False

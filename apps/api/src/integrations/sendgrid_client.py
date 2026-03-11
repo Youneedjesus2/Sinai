@@ -1,8 +1,7 @@
-import logging
-
 from src.core.config import get_settings
+from src.core.logging import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class SendGridClient:
@@ -25,8 +24,8 @@ class SendGridClient:
             )
             response = self._client.send(message)
             status = response.status_code
-            logger.info('SendGrid email sent — status: %s', status)
+            logger.info('sendgrid_email_sent', extra={'vendor': 'sendgrid', 'status_code': status})
             return 200 <= status < 300
         except Exception as exc:
-            logger.error('SendGrid send_email failed: %s', exc)
+            logger.error('sendgrid_email_failed', extra={'vendor': 'sendgrid', 'error': str(exc)})
             return False

@@ -1,7 +1,10 @@
 from pathlib import Path
 
+from src.core.logging import get_logger
 from src.integrations.openai_client import OpenAIClient, OrchestratorError
 from src.schemas.llm import OrchestratorResult, RetrievalResult
+
+logger = get_logger(__name__)
 
 PROMPT_PATH = Path(__file__).parents[4] / 'prompts' / 'tasks' / 'classify_intent.md'
 
@@ -21,6 +24,10 @@ class OrchestratorService:
         # Safe failure rule: if retrieval ran but found no trusted context,
         # escalate immediately — do NOT pass empty context to the LLM.
         if retrieval_result is not None and not retrieval_result.context_found:
+            logger.info(
+                'orchestrator_escalating_no_context',
+                extra={'detected_intent': 'escalation', 'escalation_needed': True},
+            )
             return OrchestratorResult(
                 detected_intent='escalation',
                 follow_up_needed=True,
@@ -40,12 +47,18 @@ class OrchestratorService:
                     + context_block
                 )
 
-            return OpenAIClient().complete_structured(
+            result = OpenAIClient().complete_structured(
                 system_prompt=system_prompt,
                 user_message=message_body,
                 response_model=OrchestratorResult,
             )
-        except (OrchestratorError, Exception):
+            logger.info(
+                'orchestration_completed',
+                extra={'detected_intent': result.detected_intent, 'escalation_needed': result.escalation_needed},
+            )
+            return result
+        except (OrchestratorError, Exception) as exc:
+            logger.error('orchestrator_fallback_triggered', extra={'error': str(exc)})
             return OrchestratorResult(
                 detected_intent='fallback',
                 follow_up_needed=True,

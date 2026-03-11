@@ -1,11 +1,11 @@
 import json
-import logging
 from datetime import datetime, timedelta
 
 from src.core.config import get_settings
+from src.core.logging import get_logger
 from src.schemas.scheduling import CalendarBookingError, TimeSlot
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 BUSINESS_HOUR_START = 9   # 09:00 UTC
