@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 3/11/2026 — Session 7: Conversation Summary Service
+### Added
+- `SummaryOutput` Pydantic model added to `src/schemas/llm.py` — structured LLM output with `lead_name`, `requested_service`, `location`, `care_needs`, `scheduled_time`, `unresolved_questions`, `escalation_reasons`, `next_steps`
+- `SummaryResponse` Pydantic model added to `src/schemas/lead.py` — `id`, `lead_id`, `summary_text`, `summary_json`, `created_at` with `from_attributes=True`
+- `src/repositories/summary_repository.py` — `SummaryRepository.create_summary(lead_id, summary_text, summary_json)`; follows flush-in-repo pattern
+- `src/services/summary_service.py` — `SummaryService.generate_summary(lead_id)`: loads all conversations + messages → builds `[LEAD]`/`[AGENT]` transcript → loads `prompts/tasks/generate_summary.md` → calls `OpenAIClient.complete_structured(SummaryOutput)` → formats `summary_text` → creates `Summary` record → audits `summary_generated` → commit
+- `src/api/routes/leads.py` — `POST /leads/{lead_id}/summary`; returns `SummaryResponse`; 404 if lead not found
+- `src/repositories/lead_repository.py` — added `get_conversations_for_lead(lead_id)` method
+- `tests/test_summary_service.py` — 5 tests: service creates record + audit, 404 for unknown lead, transcript includes all messages, route happy path, route 404
+
+### Changed
+- `src/schemas/llm.py` — added `SummaryOutput` model
+- `src/schemas/lead.py` — added `SummaryResponse` model
+
 ## 3/11/2026 — Session 6: Google Calendar Scheduling Pipeline
 ### Added
 - `src/schemas/scheduling.py` — `TimeSlot` dataclass (`start`, `end`, `available`); `CalendarBookingError` and `SchedulingConflictError` exceptions; `BookConsultationRequest`, `RescheduleRequest`, `TimeSlotResponse`, `AppointmentResponse` Pydantic schemas

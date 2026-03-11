@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from src.schemas.models import Conversation, Lead
@@ -21,3 +22,10 @@ class LeadRepository:
         self.db.add(conversation)
         self.db.flush()
         return conversation
+
+    def get_conversations_for_lead(self, lead_id: int) -> list[Conversation]:
+        return list(
+            self.db.scalars(
+                select(Conversation).where(Conversation.lead_id == lead_id)
+            )
+        )
