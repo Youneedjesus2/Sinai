@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     sendgrid_api_key: str = Field('', alias='SENDGRID_API_KEY')
     sendgrid_from_email: str = Field('', alias='SENDGRID_FROM_EMAIL')
 
+    # Google Calendar — all optional; empty string means "not configured"
+    google_calendar_credentials_json: str = Field('', alias='GOOGLE_CALENDAR_CREDENTIALS_JSON')
+    google_calendar_id: str = Field('', alias='GOOGLE_CALENDAR_ID')
+
 
 @lru_cache
 
