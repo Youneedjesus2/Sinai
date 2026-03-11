@@ -59,3 +59,13 @@ class AppointmentResponse(BaseModel):
     start_time: datetime | None
     end_time: datetime | None
     status: AppointmentStatus
+
+
+class AppointmentWithLeadResponse(BaseModel):
+    id: int
+    lead_id: int
+    lead_name: str | None
+    provider_event_id: str | None
+    start_time: datetime | None
+    end_time: datetime | None
+    status: AppointmentStatus

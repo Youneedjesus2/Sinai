@@ -1,11 +1,13 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from src.core.db import get_db
+from src.repositories.schedule_repository import ScheduleRepository
 from src.schemas.scheduling import (
     AppointmentResponse,
+    AppointmentWithLeadResponse,
     BookConsultationRequest,
     RescheduleRequest,
     SchedulingConflictError,
@@ -14,6 +16,35 @@ from src.schemas.scheduling import (
 from src.services.scheduling_service import SchedulingService
 
 router = APIRouter(prefix='/scheduling', tags=['scheduling'])
+
+
+@router.get('/appointments', response_model=list[AppointmentWithLeadResponse])
+def get_appointments(
+    start_date: date | None = None,
+    end_date: date | None = None,
+    db: Session = Depends(get_db),
+) -> list[AppointmentWithLeadResponse]:
+    """Return all booked appointments in the given date range (defaults to current week)."""
+    if start_date is None:
+        today = datetime.now(tz=timezone.utc).date()
+        start_date = today - timedelta(days=today.weekday())  # Monday of current week
+    if end_date is None:
+        end_date = start_date + timedelta(days=7)
+    start_dt = datetime(start_date.year, start_date.month, start_date.day, tzinfo=timezone.utc)
+    end_dt = datetime(end_date.year, end_date.month, end_date.day, tzinfo=timezone.utc)
+    rows = ScheduleRepository(db).get_appointments_in_range(start_dt, end_dt)
+    return [
+        AppointmentWithLeadResponse(
+            id=appt.id,
+            lead_id=appt.lead_id,
+            lead_name=lead_name,
+            provider_event_id=appt.provider_event_id,
+            start_time=appt.start_time,
+            end_time=appt.end_time,
+            status=appt.status,
+        )
+        for appt, lead_name in rows
+    ]
 
 
 @router.get('/slots', response_model=list[TimeSlotResponse])

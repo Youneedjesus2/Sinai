@@ -24,6 +24,11 @@ def list_leads(agency_id: str = Query(...), db: Session = Depends(get_db)):
     return LeadRepository(db).list_for_agency(agency_id)
 
 
+@router.get('/escalated', response_model=list[LeadResponse])
+def list_escalated_leads(agency_id: str = Query(...), db: Session = Depends(get_db)):
+    return LeadRepository(db).list_escalated_for_agency(agency_id)
+
+
 @router.post('/inbound', response_model=IntakeResponse)
 def inbound_lead_intake(payload: InboundLeadRequest, db: Session = Depends(get_db)):
     lead, conversation, _inbound, _outbound, orchestration = IntakeService(db).process_inbound_lead(payload)
