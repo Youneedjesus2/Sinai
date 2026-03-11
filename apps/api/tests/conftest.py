@@ -8,6 +8,7 @@ DB_PATH = Path('tests/test.db')
 os.environ['APP_ENV'] = 'test'
 os.environ['DATABASE_URL'] = f'sqlite:///{DB_PATH}'
 os.environ['OPENAI_API_KEY'] = 'test-key'
+os.environ['RINGCENTRAL_WEBHOOK_VERIFICATION_TOKEN'] = 'test-verification-token'
 
 from src.main import app  # noqa: E402
 from src.core.db import Base, engine  # noqa: E402
