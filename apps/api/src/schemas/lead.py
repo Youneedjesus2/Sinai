@@ -5,6 +5,16 @@ from pydantic import BaseModel, ConfigDict
 from src.schemas.models import ConversationState, LeadStatus
 
 
+class SummaryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    lead_id: int
+    summary_text: str
+    summary_json: dict
+    created_at: datetime
+
+
 class InboundLeadRequest(BaseModel):
     agency_id: str
     name: str | None = None

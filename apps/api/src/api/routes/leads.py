@@ -3,9 +3,10 @@ from sqlalchemy.orm import Session
 
 from src.core.db import get_db
 from src.repositories.lead_repository import LeadRepository
-from src.schemas.lead import ConversationResponse, InboundLeadRequest, LeadResponse
+from src.schemas.lead import ConversationResponse, InboundLeadRequest, LeadResponse, SummaryResponse
 from src.schemas.llm import OrchestratorResult
 from src.services.intake_service import IntakeService
+from src.services.summary_service import SummaryService
 
 router = APIRouter(prefix='/leads', tags=['leads'])
 
@@ -31,3 +32,12 @@ def get_lead(lead_id: int, db: Session = Depends(get_db)):
     if not lead:
         raise HTTPException(status_code=404, detail='Lead not found')
     return lead
+
+
+@router.post('/{lead_id}/summary', response_model=SummaryResponse)
+def generate_summary(lead_id: int, db: Session = Depends(get_db)):
+    try:
+        summary = SummaryService(db).generate_summary(lead_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    return SummaryResponse.model_validate(summary)
