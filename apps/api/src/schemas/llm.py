@@ -13,3 +13,10 @@ class RetrievalResult(BaseModel):
     confidence_score: float
     sources: list[str]
     context_found: bool
+
+
+class IntakeFields(BaseModel):
+    requested_service: str | None = None
+    location: str | None = None
+    preferred_schedule: str | None = None
+    care_recipient: str | None = None

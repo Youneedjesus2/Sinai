@@ -7,6 +7,7 @@ from src.schemas.lead import InboundLeadRequest
 from src.schemas.llm import OrchestratorResult
 from src.schemas.models import ConversationState, LeadStatus, MessageDirection
 from src.services.orchestrator_service import OrchestratorService
+from src.services.reply_service import ReplyService
 from src.services.retrieval_service import RetrievalService
 
 
@@ -61,11 +62,12 @@ class IntakeService:
         else:
             conversation.current_state = ConversationState.completed
 
+        rendered_reply = ReplyService().render_reply(result, request.source_channel)
         outbound = self.messages.create_message(
             conversation_id=conversation.id,
             direction=MessageDirection.outbound,
             channel=request.source_channel,
-            body=result.suggested_next_reply,
+            body=rendered_reply,
         )
         self._audit(lead.id, 'outbound_reply_created', {'message_id': outbound.id, 'intent': result.detected_intent})
 
