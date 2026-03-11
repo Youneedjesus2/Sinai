@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 3/11/2026 — Session 4: RingCentral SMS Integration (Inbound Webhook + Outbound Sending)
+### Added
+- `src/integrations/ringcentral_client.py` — `RingCentralClient` with JWT server-to-server auth; `send_sms(to, body)` returns RingCentral message ID or `None` on failure; `register_webhook_subscription(webhook_url)` creates a 7-day subscription with verification token; `renew_subscription(subscription_id)` refreshes an existing subscription
+- `src/api/routes/sms.py` — `POST /webhooks/sms/inbound`; handles RingCentral URL validation handshake (echoes `Validation-Token`); validates `Verification-Token` header (403 on mismatch); ignores Outbound-direction messages; checks `provider_message_id` for idempotency before running intake; calls `IntakeService` then `RingCentralClient.send_sms`; audits `external_service_failure` if send fails
+- `src/core/startup.py` — `register_ringcentral_webhook()` (no-ops if `RINGCENTRAL_CLIENT_ID` empty; reuses `RINGCENTRAL_SUBSCRIPTION_ID` if set; else registers new subscription and logs ID for operator); `schedule_subscription_renewal()` uses APScheduler `BackgroundScheduler` to renew 6 days after startup; `shutdown_scheduler()` for clean app shutdown
+- `ringcentral>=0.7.0` and `apscheduler>=3.10.0` added to `pyproject.toml`
+- `tests/test_sms_webhook.py` — 6 tests: validation handshake, wrong verification token (403), outbound direction ignored, duplicate message ID idempotency, happy-path intake + send, `send_sms` failure audits `external_service_failure`
+- Six `RINGCENTRAL_*` vars added to `.env.example`
+
+### Changed
+- `src/main.py` — wires `sms_router`; startup event calls `register_ringcentral_webhook()` and `schedule_subscription_renewal()`; shutdown event calls `shutdown_scheduler()`
+- `src/repositories/message_repository.py` — added `find_by_provider_id(provider_message_id) -> Message | None` for webhook idempotency
+- `src/core/config.py` — added 7 RingCentral settings fields (all with safe empty-string or `None` defaults so tests and unconfigured deployments work without them)
+- `tests/conftest.py` — added `RINGCENTRAL_WEBHOOK_VERIFICATION_TOKEN=test-verification-token` env var
+
 ## 3/11/2026 — Session 3: Reply Rendering Service + Prompt Library
 ### Added
 - `prompts/system/lead_intake_assistant.md` — v1 system prompt defining role, allowed scope, hard restrictions (no medical advice, no diagnoses), safe fallback rule, and tone guidance
