@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from src.core.db import SessionLocal
-from src.schemas.llm import OrchestratorResult
+from src.schemas.llm import OrchestratorResult, RetrievalResult
 from src.schemas.models import AuditEvent, Conversation, Lead, Message
 
 
@@ -20,8 +20,18 @@ def test_inbound_happy_path_creates_lead_conversation_messages_and_audits(client
         escalation_needed=False,
         suggested_next_reply='I can help schedule that. What day works best?',
     )
+    retrieval_result = RetrievalResult(
+        context_chunks=['We offer personal care and companion care services.'],
+        confidence_score=0.85,
+        sources=['sample-services.md'],
+        context_found=True,
+    )
 
-    with patch('src.integrations.openai_client.OpenAI', return_value=_make_openai_mock(appointment_result)):
+    with (
+        patch('src.integrations.openai_client.OpenAI', return_value=_make_openai_mock(appointment_result)),
+        patch('src.services.intake_service.RetrievalService') as mock_retrieval_cls,
+    ):
+        mock_retrieval_cls.return_value.retrieve.return_value = retrieval_result
         response = client.post(
             '/leads/inbound',
             json={
@@ -52,11 +62,12 @@ def test_inbound_happy_path_creates_lead_conversation_messages_and_audits(client
     assert conversation is not None
     assert len(messages) == 2
     assert {m.direction.value for m in messages} == {'inbound', 'outbound'}
-    assert len(audits) == 5
+    assert len(audits) == 6
     assert {a.event_type for a in audits} == {
         'lead_created',
         'conversation_created',
         'inbound_message_received',
+        'retrieval_completed',
         'orchestration_completed',
         'outbound_reply_created',
     }

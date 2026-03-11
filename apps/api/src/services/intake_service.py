@@ -7,6 +7,7 @@ from src.schemas.lead import InboundLeadRequest
 from src.schemas.llm import OrchestratorResult
 from src.schemas.models import ConversationState, LeadStatus, MessageDirection
 from src.services.orchestrator_service import OrchestratorService
+from src.services.retrieval_service import RetrievalService
 
 
 class IntakeService:
@@ -42,7 +43,15 @@ class IntakeService:
         )
         self._audit(lead.id, 'inbound_message_received', {'message_id': inbound.id, 'channel': inbound.channel})
 
-        result: OrchestratorResult = OrchestratorService.process_inbound_message(request.message_body)
+        retrieval_result = RetrievalService().retrieve(request.message_body, request.agency_id)
+        self._audit(lead.id, 'retrieval_completed', {
+            'context_found': retrieval_result.context_found,
+            'confidence_score': retrieval_result.confidence_score,
+        })
+
+        result: OrchestratorResult = OrchestratorService.process_inbound_message(
+            request.message_body, retrieval_result
+        )
         self._audit(lead.id, 'orchestration_completed', result.model_dump())
 
         if result.escalation_needed:

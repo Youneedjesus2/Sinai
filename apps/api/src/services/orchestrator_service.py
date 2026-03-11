@@ -1,23 +1,45 @@
 from pathlib import Path
 
 from src.integrations.openai_client import OpenAIClient, OrchestratorError
-from src.schemas.llm import OrchestratorResult
+from src.schemas.llm import OrchestratorResult, RetrievalResult
 
 PROMPT_PATH = Path(__file__).parents[4] / 'prompts' / 'tasks' / 'classify_intent.md'
 
-FALLBACK_RESULT = OrchestratorResult(
-    detected_intent='fallback',
-    follow_up_needed=True,
-    escalation_needed=False,
-    suggested_next_reply='Thanks for reaching out. Our team will follow up shortly.',
+SAFE_FALLBACK_REPLY = 'Thanks for reaching out. Our team will follow up shortly.'
+NO_CONTEXT_REPLY = (
+    "I don't have enough reliable information to answer that right now, "
+    'but I can connect you with a team member.'
 )
 
 
 class OrchestratorService:
     @staticmethod
-    def process_inbound_message(message_body: str) -> OrchestratorResult:
+    def process_inbound_message(
+        message_body: str,
+        retrieval_result: RetrievalResult | None = None,
+    ) -> OrchestratorResult:
+        # Safe failure rule: if retrieval ran but found no trusted context,
+        # escalate immediately — do NOT pass empty context to the LLM.
+        if retrieval_result is not None and not retrieval_result.context_found:
+            return OrchestratorResult(
+                detected_intent='escalation',
+                follow_up_needed=True,
+                escalation_needed=True,
+                suggested_next_reply=NO_CONTEXT_REPLY,
+            )
+
         try:
             system_prompt = PROMPT_PATH.read_text()
+
+            if retrieval_result is not None and retrieval_result.context_found:
+                context_block = '\n\n'.join(retrieval_result.context_chunks)
+                system_prompt = (
+                    system_prompt
+                    + '\n\n## APPROVED CONTEXT\n'
+                    + 'Use the following approved information to answer the lead\'s question:\n\n'
+                    + context_block
+                )
+
             return OpenAIClient().complete_structured(
                 system_prompt=system_prompt,
                 user_message=message_body,
@@ -28,5 +50,5 @@ class OrchestratorService:
                 detected_intent='fallback',
                 follow_up_needed=True,
                 escalation_needed=False,
-                suggested_next_reply='Thanks for reaching out. Our team will follow up shortly.',
+                suggested_next_reply=SAFE_FALLBACK_REPLY,
             )
