@@ -1,0 +1,32 @@
+# Secrets — never bake into image
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Test artifacts
+tests/
+.pytest_cache/
+*.db
+htmlcov/
+.coverage
+
+# Dev tooling
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+
+# Editor
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
