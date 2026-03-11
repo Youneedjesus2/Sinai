@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 3/11/2026 — Session 6: Google Calendar Scheduling Pipeline
+### Added
+- `src/schemas/scheduling.py` — `TimeSlot` dataclass (`start`, `end`, `available`); `CalendarBookingError` and `SchedulingConflictError` exceptions; `BookConsultationRequest`, `RescheduleRequest`, `TimeSlotResponse`, `AppointmentResponse` Pydantic schemas
+- `src/integrations/calendar_client.py` — `GoogleCalendarClient` with lazy Google SDK imports; `get_available_slots()` generates 9am–5pm UTC business-hour slots and marks each with availability from Calendar API; `create_event()` does a server-side overlap check before creating (raises `CalendarBookingError` if taken); `cancel_event()` deletes the Calendar event
+- `src/repositories/schedule_repository.py` — `ScheduleRepository` with `create_appointment`, `get_appointment`, `get_appointments_for_lead`, `update_appointment_status`, `check_overlap` (queries only `confirmed` appointments); follows flush-in-repo / commit-in-service pattern
+- `src/services/scheduling_service.py` — `SchedulingService` with `get_available_slots`, `book_consultation` (local overlap check → Calendar create → DB create → audit `appointment_booked` → commit), `cancel_consultation` (Calendar cancel → DB update → audit `appointment_cancelled`), `reschedule_consultation` (conflict check → cancel old → Calendar create new → DB create new → audit `appointment_rescheduled`)
+- `src/api/routes/scheduling.py` — `GET /scheduling/slots`, `POST /scheduling/book` (409 on conflict), `POST /scheduling/{id}/cancel` (404 if not found), `POST /scheduling/{id}/reschedule` (404/409)
+- `tests/test_scheduling_service.py` — 5 service-layer tests: booking creates appointment + audit, overlap raises `SchedulingConflictError`, cancellation sets status to `cancelled` + audit, 404 on missing appointment, reschedule creates new appointment + audit
+- `google-api-python-client>=2.0.0` and `google-auth>=2.0.0` added to `pyproject.toml`
+- `GOOGLE_CALENDAR_CREDENTIALS_JSON=` and `GOOGLE_CALENDAR_ID=` added to `.env.example`
+
+### Changed
+- `src/core/config.py` — added `google_calendar_credentials_json` and `google_calendar_id` (both optional with empty-string defaults)
+- `src/main.py` — registers `scheduling_router`
+
 ## 3/11/2026 — Session 5: SendGrid Email Integration (Inbound Webhook + Outbound Sending)
 ### Added
 - `src/integrations/sendgrid_client.py` — `SendGridClient` with lazy SendGrid SDK import; `send_email(to, from_, subject, body) -> bool` returns `True` on 2xx response, `False` on failure; logs via Python logger (never logs email addresses)
