@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     ringcentral_webhook_url: str = Field('', alias='RINGCENTRAL_WEBHOOK_URL')
     ringcentral_subscription_id: str | None = Field(None, alias='RINGCENTRAL_SUBSCRIPTION_ID')
 
+    # SendGrid — all optional; empty string means "not configured"
+    sendgrid_api_key: str = Field('', alias='SENDGRID_API_KEY')
+    sendgrid_from_email: str = Field('', alias='SENDGRID_FROM_EMAIL')
+
 
 @lru_cache
 

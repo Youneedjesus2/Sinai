@@ -6,7 +6,12 @@ SUPPORTED_CHANNELS = ('sms', 'email')
 
 
 class ReplyService:
-    def render_reply(self, orchestration: OrchestratorResult, channel: str) -> str:
+    def render_reply(
+        self,
+        orchestration: OrchestratorResult,
+        channel: str,
+        name: str | None = None,
+    ) -> str:
         effective_channel = channel if channel in SUPPORTED_CHANNELS else 'sms'
 
         try:
@@ -19,7 +24,7 @@ class ReplyService:
         if effective_channel == 'sms':
             return self._format_sms(reply)
         elif effective_channel == 'email':
-            return self._format_email(reply)
+            return self._format_email(reply, name=name)
 
         return self._format_sms(reply)
 
@@ -35,6 +40,7 @@ class ReplyService:
 
         return truncated + '...'
 
-    def _format_email(self, text: str) -> str:
+    def _format_email(self, text: str, name: str | None = None) -> str:
         text = text.strip()
-        return f'Hello,\n\n{text}\n\nBest regards,\nThe Care Team'
+        greeting = f'Hi {name},' if name else 'Hi there,'
+        return f'{greeting}\n\n{text}\n\nBest regards,\nCare Team'

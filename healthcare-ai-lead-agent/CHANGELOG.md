@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 3/11/2026 — Session 5: SendGrid Email Integration (Inbound Webhook + Outbound Sending)
+### Added
+- `src/integrations/sendgrid_client.py` — `SendGridClient` with lazy SendGrid SDK import; `send_email(to, from_, subject, body) -> bool` returns `True` on 2xx response, `False` on failure; logs via Python logger (never logs email addresses)
+- `src/api/routes/email_webhook.py` — `POST /webhooks/email/inbound`; parses SendGrid Inbound Parse multipart/form-data (`from`, `subject`, `text`, `headers`); extracts sender email and name from `From` header; extracts `Message-ID` from raw headers for idempotency; calls `IntakeService`; sends reply via `SendGridClient.send_email` with subject `'Re: Your inquiry — Care Team'`; audits `external_service_failure` if send fails
+- `tests/test_email_webhook.py` — 4 tests: happy-path intake + send, duplicate Message-ID idempotency, send failure audits `external_service_failure`, sender name extracted and passed to intake
+- Two `SENDGRID_*` vars added to `.env.example`
+- `sendgrid>=6.0.0` added to `pyproject.toml`
+
+### Changed
+- `src/core/config.py` — added `sendgrid_api_key` and `sendgrid_from_email` settings (both optional with empty-string defaults)
+- `src/main.py` — registers `email_router` at app startup
+- `src/services/reply_service.py` — `render_reply` now accepts optional `name: str | None = None`; `_format_email` uses `'Hi {name},'` when name is provided, `'Hi there,'` otherwise; sign-off updated to `'Best regards,\nCare Team'`
+- `tests/test_reply_service.py` — updated greeting assertion from `'Hello,'` to `'Hi there,'`; added `test_email_reply_uses_name_when_provided`
+
 ## 3/11/2026 — Session 4: RingCentral SMS Integration (Inbound Webhook + Outbound Sending)
 ### Added
 - `src/integrations/ringcentral_client.py` — `RingCentralClient` with JWT server-to-server auth; `send_sms(to, body)` returns RingCentral message ID or `None` on failure; `register_webhook_subscription(webhook_url)` creates a 7-day subscription with verification token; `renew_subscription(subscription_id)` refreshes an existing subscription
