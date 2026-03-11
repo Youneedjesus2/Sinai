@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 3/11/2026 — Session 9: Postgres Migration + Production Config
+### Added
+- `migrations/001_initial_schema.sql` — rewritten for PostgreSQL: `BIGSERIAL` PKs, `TIMESTAMPTZ`, `JSONB`, native ENUM types (`leadstatus`, `conversationstate`, `messagedirection`, `appointmentstatus`), `ON DELETE CASCADE` on all FK refs, required indexes on all foreign keys + `agency_id`, partial index on `messages.provider_message_id`, `pgvector` extension, `knowledge_vectors` table for LlamaIndex with `ivfflat` cosine index
+- `migrations/002_rls_policies.sql` — Row Level Security on all six data tables; creates `sinai_app` restricted role; policies filter through `agency_id` via `current_setting('app.current_agency_id', true)`; service role bypasses RLS (Supabase default); `knowledge_vectors` excluded (shared across agencies)
+- `alembic.ini` — Alembic config; URL placeholder overridden by `DATABASE_URL` env var at runtime
+- `alembic/env.py` — reads `DATABASE_URL` from env; sets `APP_ENV` and `OPENAI_API_KEY` defaults so settings don't fail during migration runs; imports `Base.metadata` for autogenerate support
+- `alembic/script.py.mako` — standard Alembic revision template
+- `alembic/versions/2026_03_11_0001_initial_schema.py` — Alembic-managed version of the Postgres schema (equivalent to 001_initial_schema.sql); full `upgrade()` and `downgrade()`
+- `apps/api/Dockerfile` — Python 3.11-slim; installs `libpq-dev` for psycopg2; installs deps via `pyproject.toml`; copies `src/`, `alembic/`, `prompts/`; exposes port 8000; `HEALTHCHECK` on `/health`; starts with `uvicorn`
+- `apps/api/.dockerignore` — excludes `.env`, `__pycache__`, `*.pyc`, `tests/`, `.pytest_cache/`, `.venv/`
+- `railway.json` — Railway deployment config at repo root; builds from `apps/api/Dockerfile`; `startCommand` runs `alembic upgrade head` before uvicorn; healthcheck on `/health`
+
+### Changed
+- `src/core/config.py` — added `supabase_url: str | None` and `supabase_anon_key: str | None` (both optional, for future Supabase Auth integrations)
+- `pyproject.toml` — added `alembic>=1.13.0` and `psycopg2-binary>=2.9.0`
+- `.env.example` — updated `DATABASE_URL` to show Postgres connection string format; added `SUPABASE_URL` and `SUPABASE_ANON_KEY`
+
+### Notes
+- App code requires **no changes** to swap from SQLite to Postgres — only `DATABASE_URL` changes
+- Tests continue to run against SQLite via `Base.metadata.create_all()` in `conftest.py` (unaffected by Alembic)
+- `alembic upgrade head` is idempotent; safe to run on every deploy
+
 ## 3/11/2026 — Session 8: Structured Logging + Phoenix Observability
 ### Added
 - `src/core/logging.py` — `get_logger(name)`: configures root logger with `_JsonFormatter` on first call; emits single-line JSON `{"timestamp", "level", "name", "message", "extra"}` to stdout; log level from `LOG_LEVEL` env var; no PII in any log call per data-governance.md §9

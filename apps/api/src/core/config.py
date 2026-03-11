@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     log_level: str = Field('INFO', alias='LOG_LEVEL')
     phoenix_collector_endpoint: str | None = Field(None, alias='PHOENIX_COLLECTOR_ENDPOINT')
 
+    # Supabase (production) — optional; not used by app code directly,
+    # but available for future Supabase Auth / Storage integrations.
+    supabase_url: str | None = Field(None, alias='SUPABASE_URL')
+    supabase_anon_key: str | None = Field(None, alias='SUPABASE_ANON_KEY')
+
 
 @lru_cache
 
