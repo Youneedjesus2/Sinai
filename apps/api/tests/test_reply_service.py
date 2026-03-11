@@ -55,7 +55,16 @@ def test_email_reply_includes_greeting_and_closing():
     reply = 'We would be happy to schedule a consultation with you.'
     result = ReplyService().render_reply(_make_result(reply), 'email')
 
-    assert result.startswith('Hello,')
+    assert result.startswith('Hi there,')
+    assert 'Best regards,' in result
+    assert reply in result
+
+
+def test_email_reply_uses_name_when_provided():
+    reply = 'We would be happy to schedule a consultation with you.'
+    result = ReplyService().render_reply(_make_result(reply), 'email', name='Jane')
+
+    assert result.startswith('Hi Jane,')
     assert 'Best regards,' in result
     assert reply in result
 

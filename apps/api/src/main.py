@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from src.api.routes.email_webhook import router as email_router
 from src.api.routes.health import router as health_router
 from src.api.routes.leads import router as leads_router
 from src.api.routes.messages import router as messages_router
@@ -29,3 +30,4 @@ app.include_router(health_router)
 app.include_router(leads_router)
 app.include_router(messages_router)
 app.include_router(sms_router)
+app.include_router(email_router)

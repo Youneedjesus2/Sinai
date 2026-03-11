@@ -13,7 +13,9 @@ dependencies = [
   "llama-index>=0.10.0",
   "pgvector>=0.2.0",
   "ringcentral>=0.7.0",
-  "apscheduler>=3.10.0"
+  "apscheduler>=3.10.0",
+  "sendgrid>=6.0.0",
+  "python-multipart>=0.0.9"
 ]
 
 [project.optional-dependencies]
