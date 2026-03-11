@@ -17,6 +17,15 @@ class LeadRepository:
     def get_lead(self, lead_id: int) -> Lead | None:
         return self.db.get(Lead, lead_id)
 
+    def list_for_agency(self, agency_id: str) -> list[Lead]:
+        return list(
+            self.db.scalars(
+                select(Lead)
+                .where(Lead.agency_id == agency_id)
+                .order_by(Lead.created_at.desc())
+            )
+        )
+
     def create_conversation(self, lead_id: int) -> Conversation:
         conversation = Conversation(lead_id=lead_id)
         self.db.add(conversation)

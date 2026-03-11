@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+## 3/11/2026 — Session 10: Next.js Staff Dashboard
+### Added
+- `apps/web/` — Next.js 14 App Router dashboard (TypeScript, Tailwind CSS, shadcn/ui-style components, SWR)
+- `apps/web/app/page.tsx` — Leads Dashboard: table with name, channel, status badges, creation date; 30-second auto-refresh via SWR; skeleton loader; empty state; click row to navigate to lead detail
+- `apps/web/app/leads/[id]/page.tsx` — Lead Detail: conversation timeline (inbound/outbound bubbles per message, conversation state badge); right panel with lead info card, appointments card, AI summary card (generate/regenerate); escalation banner when state is `escalated`
+- `apps/web/app/leads/[id]/components/EscalationBanner.tsx` — red banner listing escalation reasons from `summary_json`
+- `apps/web/lib/api.ts` — typed API client: `getLeads`, `getLead`, `getLeadConversations`, `getLeadAppointments`, `getLeadSummary`, `generateLeadSummary`; SWR key factories
+- `apps/web/lib/utils.ts` — `cn()` Tailwind class merge utility
+- `apps/web/components/ui/badge.tsx` — `Badge` with variants for all lead statuses and conversation states
+- `apps/web/components/ui/button.tsx` — `Button` with variant/size CVA
+- `apps/web/components/ui/card.tsx` — `Card`, `CardHeader`, `CardTitle`, `CardContent`
+- `apps/web/components/ui/skeleton.tsx` — `Skeleton` pulse loader
+- `apps/web/app/globals.css` — CSS custom properties for design tokens (Tailwind + shadcn theme)
+- `apps/web/app/layout.tsx` — root layout with header
+- `apps/web/package.json` — `next@14`, `react@18`, `swr`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`
+- `apps/web/tsconfig.json`, `apps/web/tailwind.config.ts`, `apps/web/postcss.config.mjs`, `apps/web/next.config.ts`
+- `apps/web/.env.local.example` — `NEXT_PUBLIC_API_URL=http://localhost:8000`
+
+### Changed
+- `apps/api/src/api/routes/leads.py` — added `GET /leads?agency_id=` (list all leads for agency), `GET /leads/{id}/conversations`, `GET /leads/{id}/appointments`, `GET /leads/{id}/summary` (fetch existing summary)
+- `apps/api/src/repositories/lead_repository.py` — added `list_for_agency(agency_id)` method (required by new list route)
+
+### Notes
+- API base URL configured via `NEXT_PUBLIC_API_URL` env var; defaults to `http://localhost:8000`
+- Default agency ID for dashboard reads from `NEXT_PUBLIC_DEFAULT_AGENCY_ID`; defaults to `'default'`
+- SWR refreshInterval: 30 s on leads list, 15 s on conversation timeline
+- `GET /leads/{id}/summary` returns 404 when no summary exists; dashboard handles gracefully (shows Generate button)
+
 ## 3/11/2026 — Session 9: Postgres Migration + Production Config
 ### Added
 - `migrations/001_initial_schema.sql` — rewritten for PostgreSQL: `BIGSERIAL` PKs, `TIMESTAMPTZ`, `JSONB`, native ENUM types (`leadstatus`, `conversationstate`, `messagedirection`, `appointmentstatus`), `ON DELETE CASCADE` on all FK refs, required indexes on all foreign keys + `agency_id`, partial index on `messages.provider_message_id`, `pgvector` extension, `knowledge_vectors` table for LlamaIndex with `ivfflat` cosine index

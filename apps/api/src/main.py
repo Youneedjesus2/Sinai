@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routes.email_webhook import router as email_router
 from src.api.routes.health import router as health_router
@@ -14,6 +15,16 @@ from src.schemas import models  # noqa: F401
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name)
+
+# Allow the Next.js dashboard (and any configured origin) to call the API.
+# In production, set CORS_ORIGINS to the exact Vercel deployment URL.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=['*'],
+    allow_credentials=False,
+    allow_methods=['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allow_headers=['*'],
+)
 
 
 @app.on_event('startup')
